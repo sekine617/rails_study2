@@ -29,4 +29,9 @@ class User < ApplicationRecord
             with: /\A(?=.*?[a-z])(?=.*?\d)[a-z\d]{8,100}+\z/i,
             message: 'は半角英数字をそれぞれ1種類以上含む8文字以上にしてください'
         }
+
+    def age
+        now = Time.zone.now
+        (now.strftime('%Y%m%d').to_i - birthday.strftime('%Y%m%d').to_i) / 10000
+    end
 end
