@@ -1,66 +1,38 @@
 version: 2
+ 
 jobs:
-  build:
-    docker:
-    - image: circleci/ruby:2.4.5-node-browsers
-      environment:
-        - BUNDLER_VERSION: 2.0.2
-        - RAILS_ENV: 'test'
-    - image: circleci/mysql:5.7
-      environment:
-        - MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
-        - MYSQL_ROOT_HOST: '127.0.0.1'
-
-    working_directory: ~/rails_3  #自身のアプリディレクトリ名を設定  
-
-
-    steps:
-    - checkout
-
-    - restore_cache:
-        keys:
-        - v1-dependencies-{{ checksum "Gemfile.lock" }}
-        - v1-dependencies-
-
-    - run:
-        name: install dependencies
-        command: |
-          gem install bundler -v 2.0.2
-          bundle install --jobs=4 --retry=3 --path vendor/bundle
-
-    - save_cache:
-        paths:
-        - ./vendor/bundle
-        key: v1-dependencies-{{ checksum "Gemfile.lock" }}
-
-    # Database setup
-    - run: mv ./config/database.yml.ci ./config/database.yml
-
-    # Database setup
-    - run:
-        name: Databasesetup
-        command: |
-           bundle exec rake db:create
-           bundle exec rake db:schema:load
-
-    # run tests!
-    - run:
-        name: Run rspec
-        command: |
-          mkdir /tmp/test-results
-          TEST_FILES="$(circleci tests glob "spec/models/user_spec.rb" | \
-            circleci tests split --split-by=timings)"
-
-          bundle exec rspec \
-            --format progress \
-            --format RspecJunitFormatter \
-            --out /tmp/test-results/rspec.xml \
-            --format progress \
-            $TEST_FILES
-
-    # collect reports
-    - store_test_results:
-        path: /tmp/test-results
-    - store_artifacts:
-        path: /tmp/test-results
-        destination: test-results
+    # build ジョブ: CircleCI 上で Docker コンテナを作成してテストする
+    build:
+        docker:
+            - image: alpine
+        steps:
+            - checkout
+            - run:
+                name: Echo Test
+                command: echo "CircleCI Test"
+    # deploy ジョブ: EC2 に SSH 接続して、デプロイを実行する
+    deploy:
+        machine:
+            image: circleci/classic:edge
+        steps:
+            - checkout
+            # CircleCI に登録した秘密鍵を呼び出す
+            - add_ssh_keys:
+            # CircleCI に登録した環境変数を使って SSH
+            - run: ssh ${USER_NAME}@${HOST_NAME} 'cd rails_3 && git pull'
+ 
+workflows:
+    version: 2
+    # build_and_deploy ジョブ: 一番最初に呼ばれるジョブ
+    build_and_deploy:
+        # build ジョブと deploy ジョブを呼び出す
+        jobs:
+            - build
+            - deploy:
+                requires:
+                    # deploy ジョブより先に build ジョブを実行しろ、という命令
+                    - build
+                # master ブランチに push された場合のみ deploy ジョブを実行する
+                filters:
+                    branches:
+                        only: master
