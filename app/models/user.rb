@@ -18,13 +18,13 @@ class User < ApplicationRecord
     validates :name,
         presence: true,
         uniqueness: true,
-        length: {maximum: 16},
+        length: { maximum: 16 },
         format: {
             with: /\A[a-z0-9]+\z/,
             message: 'は小文字英数字で入力してください'
         }
     validates :password,
-        length: { minimum: 8},
+        length: { minimum: 8 },
         format: {
             with: /\A(?=.*?[a-z])(?=.*?\d)[a-z\d]{8,100}+\z/i,
             message: 'は半角英数字をそれぞれ1種類以上含む8文字以上にしてください'
